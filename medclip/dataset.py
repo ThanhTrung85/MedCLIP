@@ -12,7 +12,7 @@ from torch import nn
 from torchvision import transforms
 
 from transformers import AutoTokenizer
-from transformers import CLIPFeatureExtractor, CLIPProcessor
+from transformers import CLIPImageProcessor, CLIPProcessor
 from transformers.utils import TensorType
 from transformers.feature_extraction_utils import BatchFeature
 from transformers.image_utils import is_torch_tensor
@@ -27,7 +27,7 @@ from .prompts import process_class_prompts, process_class_prompts_for_tuning
 from .prompts import generate_chexpert_class_prompts
 from . import constants
 
-class MedCLIPFeatureExtractor(CLIPFeatureExtractor):
+class MedCLIPFeatureExtractor(CLIPImageProcessor):
     def __init__(self, 
         do_resize=True, 
         size=224, 
@@ -40,7 +40,17 @@ class MedCLIPFeatureExtractor(CLIPFeatureExtractor):
         do_convert_rgb=False,
         do_pad_square=True,
         **kwargs):
-        super().__init__(do_resize, size, resample, do_center_crop, crop_size, do_normalize, image_mean, image_std, do_convert_rgb, **kwargs)
+        super().__init__(
+    do_resize=do_resize,
+    size=size,
+    resample=resample,
+    do_center_crop=do_center_crop,
+    crop_size=crop_size,
+    do_normalize=do_normalize,
+    image_mean=image_mean,
+    image_std=image_std,
+    **kwargs
+)
         self.do_pad_square = do_pad_square
     
     def __call__(self, 
@@ -136,7 +146,7 @@ class MedCLIPFeatureExtractor(CLIPFeatureExtractor):
         '''
         x, y = img.size
         size = max(min_size, x, y)
-        new_im = Image.new('L', (size, size), fill_color)
+        new_im = Image.new('RGB', (size, size), fill_color)
         new_im.paste(img, (int((size - x) / 2), int((size - y) / 2)))
         return new_im
 
@@ -194,7 +204,7 @@ class ImageTextContrastiveDataset(Dataset):
         img = Image.open(row.imgpath)
 
         img = self._pad_img(img) # pad image to square
-        img = self.transform(img).unsqueeze(1)
+        img = self.transform(img)
         report = row.report # original sentences list
         img_label = row[self._labels_].values # image corresponds to text labels
         if len(report) == 0: # no report available
@@ -223,7 +233,7 @@ class ImageTextContrastiveDataset(Dataset):
         '''
         x, y = img.size
         size = max(min_size, x, y)
-        new_im = Image.new('L', (size, size), fill_color)
+        new_im = Image.new('RGB', (size, size), fill_color)
         new_im.paste(img, (int((size - x) / 2), int((size - y) / 2)))
         return new_im
 
@@ -399,7 +409,7 @@ class ZeroShotImageDataset(Dataset):
         row = self.df.iloc[index]
         img = Image.open(row.imgpath)
         img = self._pad_img(img)
-        img = self.transform(img).unsqueeze(1)
+        img = self.transform(img)
         label = pd.DataFrame(row[self.class_names]).transpose()
         return img, label
 
@@ -408,7 +418,7 @@ class ZeroShotImageDataset(Dataset):
         '''
         x, y = img.size
         size = max(min_size, x, y)
-        new_im = Image.new('L', (size, size), fill_color)
+        new_im = Image.new('RGB', (size, size), fill_color)
         new_im.paste(img, (int((size - x) / 2), int((size - y) / 2)))
         return new_im
 
@@ -488,7 +498,7 @@ class SuperviseImageDataset(Dataset):
         row = self.df.iloc[index]
         img = Image.open(row.imgpath)
         img = self._pad_img(img)
-        img = self.transform(img).unsqueeze(1)
+        img = self.transform(img)
         label = pd.DataFrame(row[self.class_names]).transpose()
         return img, label
 
@@ -497,7 +507,7 @@ class SuperviseImageDataset(Dataset):
         '''
         x, y = img.size
         size = max(min_size, x, y)
-        new_im = Image.new('L', (size, size), fill_color)
+        new_im = Image.new('RGB', (size, size), fill_color)
         new_im.paste(img, (int((size - x) / 2), int((size - y) / 2)))
         return new_im
 
@@ -567,7 +577,7 @@ class PromptTuningImageDataset(Dataset):
         row = self.df.iloc[index]
         img = Image.open(row.imgpath)
         img = self._pad_img(img)
-        img = self.transform(img).unsqueeze(1)
+        img = self.transform(img)
         label = pd.DataFrame(row[self.class_names]).transpose()
         return img, label
 
@@ -576,7 +586,7 @@ class PromptTuningImageDataset(Dataset):
         '''
         x, y = img.size
         size = max(min_size, x, y)
-        new_im = Image.new('L', (size, size), fill_color)
+        new_im = Image.new('RGB', (size, size), fill_color)
         new_im.paste(img, (int((size - x) / 2), int((size - y) / 2)))
         return new_im
 
